@@ -7,17 +7,28 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.Action;
+import javax.swing.ActionMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JTextPane;
+import javax.swing.KeyStroke;
+import javax.swing.text.DefaultEditorKit;
 
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
@@ -36,6 +47,12 @@ public class MainPanel extends JPanel {
 	SerialPort serialPort;
 	private JButton connect_button;
 	private JButton close_button;
+	private JTextArea tx;
+	private JButton updatebutton;
+	private JTextPane textPane;
+	private JButton button;
+	private JTextField textField;
+	private JButton sendbutton;
 
 	enum UIState {
 		PORT_OPEN, PORT_CLOSE
@@ -47,7 +64,7 @@ public class MainPanel extends JPanel {
 	public MainPanel() {
 
 		setLayout(new BorderLayout(0, 0));
-		setPreferredSize(new Dimension(500, 400));
+		setPreferredSize(new Dimension(587, 484));
 
 		JPanel panel = new JPanel();
 		add(panel, BorderLayout.NORTH);
@@ -58,17 +75,17 @@ public class MainPanel extends JPanel {
 		gbl_panel.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
 		panel.setLayout(gbl_panel);
 
-		JButton button_1 = new JButton("更新");
-		button_1.addActionListener(new ActionListener() {
+		updatebutton = new JButton("更新");
+		updatebutton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				initialize();
 			}
 		});
-		GridBagConstraints gbc_button_1 = new GridBagConstraints();
-		gbc_button_1.insets = new Insets(0, 0, 5, 5);
-		gbc_button_1.gridx = 0;
-		gbc_button_1.gridy = 0;
-		panel.add(button_1, gbc_button_1);
+		GridBagConstraints gbc_updatebutton = new GridBagConstraints();
+		gbc_updatebutton.insets = new Insets(0, 0, 5, 5);
+		gbc_updatebutton.gridx = 0;
+		gbc_updatebutton.gridy = 0;
+		panel.add(updatebutton, gbc_updatebutton);
 
 		comboBox = new JComboBox<String>();
 		GridBagConstraints gbc_comboBox = new GridBagConstraints();
@@ -112,8 +129,6 @@ public class MainPanel extends JPanel {
 				serialPort.setBaudRate(baudRate);
 				System.out.println("Opening " + serialPort.getSystemPortName() + " Baud Rage " + baudRate);
 
-
-
 				serialPort.addDataListener(new SerialPortDataListener() {
 
 					public int getListeningEvents() {
@@ -131,8 +146,8 @@ public class MainPanel extends JPanel {
 								int bytesToRead = serialPort.bytesAvailable();
 								if (bytesToRead == -1) {
 									System.out.println("-1 means port is closed.");
-											closeSerialPort();
-											updateComobobox();
+									closeSerialPort();
+									updateComobobox();
 									return;
 								}
 								System.out.println(bytesToRead + " byte(s) available.");
@@ -140,7 +155,7 @@ public class MainPanel extends JPanel {
 								serialPort.readBytes(newData, bytesToRead);
 								String s = new String(newData, "UTF8");
 								System.out.println("Received [" + s + "]");
-								
+								tx.append(s);
 
 							}
 
@@ -151,7 +166,8 @@ public class MainPanel extends JPanel {
 					}
 				});
 				if (!serialPort.openPort()) {
-					JOptionPane.showMessageDialog(null, "Unable to open the port.", "Error", JOptionPane.ERROR_MESSAGE,null);
+					JOptionPane.showMessageDialog(null, "Unable to open the port.", "Error", JOptionPane.ERROR_MESSAGE,
+							null);
 					return;
 				}
 
@@ -169,7 +185,7 @@ public class MainPanel extends JPanel {
 		close_button.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-
+				closeSerialPort();
 			}
 		});
 
@@ -178,6 +194,22 @@ public class MainPanel extends JPanel {
 		gbc_close_button.gridx = 4;
 		gbc_close_button.gridy = 0;
 		panel.add(close_button, gbc_close_button);
+		
+		textField = new JTextField();
+		GridBagConstraints gbc_textField = new GridBagConstraints();
+		gbc_textField.gridwidth = 4;
+		gbc_textField.insets = new Insets(0, 0, 0, 5);
+		gbc_textField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_textField.gridx = 0;
+		gbc_textField.gridy = 1;
+		panel.add(textField, gbc_textField);
+		textField.setColumns(10);
+		
+		sendbutton = new JButton("送信");
+		GridBagConstraints gbc_sendbutton = new GridBagConstraints();
+		gbc_sendbutton.gridx = 4;
+		gbc_sendbutton.gridy = 1;
+		panel.add(sendbutton, gbc_sendbutton);
 
 		JPanel panel_1 = new JPanel();
 
@@ -190,7 +222,77 @@ public class MainPanel extends JPanel {
 		panel_1.setLayout(gbl_panel_1);
 
 		//テキストエリアを作成
-		JTextArea tx = new JTextArea();
+		tx = new JTextArea();
+		tx.addMouseListener(new MouseListener() {
+			private void mousePopup(MouseEvent e) {
+				if (e.isPopupTrigger()) {
+					// ポップアップメニューを表示する
+					JComponent c = (JComponent)e.getSource();
+					showPopup(c, e.getX(), e.getY());
+					e.consume();
+				}
+			}
+
+			public void mousePressed(MouseEvent e) {
+				mousePopup(e);
+			}
+
+			public void mouseReleased(MouseEvent e) {
+				mousePopup(e);
+			}
+
+			public void mouseClicked(MouseEvent e) {
+				// TODO 自動生成されたメソッド・スタブ
+
+			}
+
+			public void mouseEntered(MouseEvent e) {
+				// TODO 自動生成されたメソッド・スタブ
+
+			}
+
+			public void mouseExited(MouseEvent e) {
+				// TODO 自動生成されたメソッド・スタブ
+
+			}
+
+			protected void showPopup(JComponent c, int x, int y) {
+				JPopupMenu pmenu = new JPopupMenu();
+
+
+				ActionMap am = c.getActionMap();
+
+				Action cut = am.get(DefaultEditorKit.cutAction);
+				addMenu(pmenu, "切り取り(X)", cut, 'X', KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.CTRL_DOWN_MASK));
+
+				Action copy = am.get(DefaultEditorKit.copyAction);
+				addMenu(pmenu, "コピー(C)", copy, 'C', KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.CTRL_DOWN_MASK));
+
+				Action paste = am.get(DefaultEditorKit.pasteAction);
+				addMenu(pmenu, "貼り付け(V)", paste, 'V', KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.CTRL_DOWN_MASK));
+
+				Action all = am.get(DefaultEditorKit.selectAllAction);
+				addMenu(pmenu, "すべて選択(A)", all, 'A', KeyStroke.getKeyStroke(KeyEvent.VK_A, KeyEvent.CTRL_DOWN_MASK));
+
+
+				pmenu.show(c, x, y);
+			}
+
+			protected void addMenu(JPopupMenu pmenu, String text, Action action, int mnemonic, KeyStroke ks) {
+				if (action != null) {
+					JMenuItem mi = pmenu.add(action);
+					if (text != null) {
+						mi.setText(text);
+					}
+					if (mnemonic != 0) {
+						mi.setMnemonic(mnemonic);
+					}
+					if (ks != null) {
+						mi.setAccelerator(ks);
+					}
+				}
+			}
+		});
 
 		//まず、テキストエリアの文字列折り返しを有効にする。
 		tx.setLineWrap(true);
@@ -222,20 +324,31 @@ public class MainPanel extends JPanel {
 
 		JLabel lblTest = new JLabel("ステータス");
 		GridBagConstraints gbc_lblTest = new GridBagConstraints();
-		gbc_lblTest.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblTest.anchor = GridBagConstraints.WEST;
 		gbc_lblTest.insets = new Insets(0, 0, 0, 5);
 		gbc_lblTest.gridx = 0;
 		gbc_lblTest.gridy = 0;
 		panel_2.add(lblTest, gbc_lblTest);
 
-		JTextPane textPane = new JTextPane();
+		textPane = new JTextPane();
 		textPane.setText("-");
 		GridBagConstraints gbc_textPane = new GridBagConstraints();
 		gbc_textPane.insets = new Insets(0, 0, 0, 5);
-		gbc_textPane.anchor = GridBagConstraints.NORTHWEST;
+		gbc_textPane.anchor = GridBagConstraints.WEST;
 		gbc_textPane.gridx = 1;
 		gbc_textPane.gridy = 0;
 		panel_2.add(textPane, gbc_textPane);
+
+		button = new JButton("クリア");
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				tx.setText("");
+			}
+		});
+		GridBagConstraints gbc_button = new GridBagConstraints();
+		gbc_button.gridx = 2;
+		gbc_button.gridy = 0;
+		panel_2.add(button, gbc_button);
 
 		//		log.debug("ログ出力テスト");
 		//		log.info("ログ出力テスト");
@@ -284,16 +397,15 @@ public class MainPanel extends JPanel {
 
 	void updateUI(UIState uiState) {
 		boolean isOpen = (uiState == UIState.PORT_OPEN);
+		textPane.setText(uiState.toString());
 
 		close_button.setEnabled(isOpen);
 		connect_button.setEnabled(!isOpen);
+		updatebutton.setEnabled(!isOpen);
 
-		//	    closeButton.setDisable(!isOpen);
-		//	    openButton.setDisable(isOpen);
-		//
-		//	    portChoiceBox.setDisable(isOpen);
-		//	    baudChoiceBox.setDisable(isOpen);
-		//	    refreshButton.setDisable(isOpen);
+		comboBox.setEnabled(!isOpen);
+		comboBox_1.setEnabled(!isOpen);
+
 	}
 
 }
