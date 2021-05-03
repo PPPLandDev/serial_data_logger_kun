@@ -385,14 +385,17 @@ public class MainPanel extends JPanel {
 		//		log.warn("ログ出力テスト");
 		//		log.error("ログ出力テスト");
 
+
 		initialize();
 
 	}
 
 	public void initialize() {
+
 		portFound = false;
 		comboBox.removeAllItems();
 		updateComobobox();
+		updateUI(UIState.PORT_CLOSE);
 	}
 
 	void closeSerialPort() {
@@ -439,6 +442,9 @@ public class MainPanel extends JPanel {
 
 		comboBox.setEnabled(!isOpen);
 		comboBox_1.setEnabled(!isOpen);
+
+		sendbutton.setEnabled(isOpen);
+		sendtextField.setEnabled(isOpen);
 
 	}
 
