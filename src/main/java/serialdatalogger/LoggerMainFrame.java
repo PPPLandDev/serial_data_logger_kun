@@ -18,6 +18,7 @@ import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.EmptyBorder;
 
+import lombok.extern.slf4j.Slf4j;
 import serialdatalogger.disp.MainPanel;
 
 /**
@@ -27,6 +28,7 @@ import serialdatalogger.disp.MainPanel;
  * <li>Rev01.00 2021-05-02 : 新規作成 			K.Nakamura<br>
  *
  */
+@Slf4j
 public class LoggerMainFrame extends JFrame {
 
 	/**
@@ -122,7 +124,7 @@ public class LoggerMainFrame extends JFrame {
 	}
 
 	private static void initialize() {
-		//		log.info("-----プログラム起動----");
+		log.info("-----プログラム起動----");
 
 		//メイン画面
 		frame = new LoggerMainFrame();
@@ -156,7 +158,7 @@ public class LoggerMainFrame extends JFrame {
 			}
 
 		});
-		//		log.info("----プログラム初期化完了----");
+		log.info("----プログラム初期化完了----");
 
 	}
 
@@ -164,7 +166,7 @@ public class LoggerMainFrame extends JFrame {
 	 * シャットダウン処理を行います。
 	 */
 	public static void shutdown() {
-		//		log.info("----プログラム終了----");
+		log.info("----プログラム終了----");
 		System.exit(0);
 	}
 
