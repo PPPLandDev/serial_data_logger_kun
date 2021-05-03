@@ -10,6 +10,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +22,7 @@ import javax.swing.ActionMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -28,6 +33,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
+import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.text.DefaultEditorKit;
 
 import com.fazecast.jSerialComm.SerialPort;
@@ -51,8 +57,9 @@ public class MainPanel extends JPanel {
 	private JButton updatebutton;
 	private JTextPane textPane;
 	private JButton button;
-	private JTextField textField;
+	private JTextField sendtextField;
 	private JButton sendbutton;
+	private JButton button_1;
 
 	enum UIState {
 		PORT_OPEN, PORT_CLOSE
@@ -194,18 +201,31 @@ public class MainPanel extends JPanel {
 		gbc_close_button.gridx = 4;
 		gbc_close_button.gridy = 0;
 		panel.add(close_button, gbc_close_button);
-		
-		textField = new JTextField();
-		GridBagConstraints gbc_textField = new GridBagConstraints();
-		gbc_textField.gridwidth = 4;
-		gbc_textField.insets = new Insets(0, 0, 0, 5);
-		gbc_textField.fill = GridBagConstraints.HORIZONTAL;
-		gbc_textField.gridx = 0;
-		gbc_textField.gridy = 1;
-		panel.add(textField, gbc_textField);
-		textField.setColumns(10);
-		
+
+		sendtextField = new JTextField();
+		GridBagConstraints gbc_sendtextField = new GridBagConstraints();
+		gbc_sendtextField.gridwidth = 4;
+		gbc_sendtextField.insets = new Insets(0, 0, 0, 5);
+		gbc_sendtextField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_sendtextField.gridx = 0;
+		gbc_sendtextField.gridy = 1;
+		panel.add(sendtextField, gbc_sendtextField);
+		sendtextField.setColumns(10);
+
 		sendbutton = new JButton("送信");
+		sendbutton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					String text = sendtextField.getText();
+					byte[] buff = text.getBytes();
+					sendByte(buff);
+				} catch (Exception ex) {
+					ex.printStackTrace();
+					log.error("", ex);
+				}
+
+			}
+		});
 		GridBagConstraints gbc_sendbutton = new GridBagConstraints();
 		gbc_sendbutton.gridx = 4;
 		gbc_sendbutton.gridy = 1;
@@ -227,7 +247,7 @@ public class MainPanel extends JPanel {
 			private void mousePopup(MouseEvent e) {
 				if (e.isPopupTrigger()) {
 					// ポップアップメニューを表示する
-					JComponent c = (JComponent)e.getSource();
+					JComponent c = (JComponent) e.getSource();
 					showPopup(c, e.getX(), e.getY());
 					e.consume();
 				}
@@ -259,7 +279,6 @@ public class MainPanel extends JPanel {
 			protected void showPopup(JComponent c, int x, int y) {
 				JPopupMenu pmenu = new JPopupMenu();
 
-
 				ActionMap am = c.getActionMap();
 
 				Action cut = am.get(DefaultEditorKit.cutAction);
@@ -273,7 +292,6 @@ public class MainPanel extends JPanel {
 
 				Action all = am.get(DefaultEditorKit.selectAllAction);
 				addMenu(pmenu, "すべて選択(A)", all, 'A', KeyStroke.getKeyStroke(KeyEvent.VK_A, KeyEvent.CTRL_DOWN_MASK));
-
 
 				pmenu.show(c, x, y);
 			}
@@ -316,9 +334,9 @@ public class MainPanel extends JPanel {
 		JPanel panel_2 = new JPanel();
 		add(panel_2, BorderLayout.SOUTH);
 		GridBagLayout gbl_panel_2 = new GridBagLayout();
-		gbl_panel_2.columnWidths = new int[] { 65, 185, 0, 0 };
+		gbl_panel_2.columnWidths = new int[] { 65, 185, 0, 0, 0 };
 		gbl_panel_2.rowHeights = new int[] { 16, 0 };
-		gbl_panel_2.columnWeights = new double[] { 0.0, 1.0, 0.0, Double.MIN_VALUE };
+		gbl_panel_2.columnWeights = new double[] { 0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE };
 		gbl_panel_2.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
 		panel_2.setLayout(gbl_panel_2);
 
@@ -345,8 +363,20 @@ public class MainPanel extends JPanel {
 				tx.setText("");
 			}
 		});
+
+		button_1 = new JButton("テキスト内容保存");
+		button_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				outputFile();
+			}
+		});
+		GridBagConstraints gbc_button_1 = new GridBagConstraints();
+		gbc_button_1.insets = new Insets(0, 0, 0, 5);
+		gbc_button_1.gridx = 2;
+		gbc_button_1.gridy = 0;
+		panel_2.add(button_1, gbc_button_1);
 		GridBagConstraints gbc_button = new GridBagConstraints();
-		gbc_button.gridx = 2;
+		gbc_button.gridx = 3;
 		gbc_button.gridy = 0;
 		panel_2.add(button, gbc_button);
 
@@ -383,6 +413,10 @@ public class MainPanel extends JPanel {
 		serialPort.writeBytes(buff, 1);
 	}
 
+	void sendByte(byte[] buff) {
+		serialPort.writeBytes(buff, buff.length);
+	}
+
 	public void updateComobobox() {
 
 		SerialPort[] serialPorts = SerialPort.getCommPorts();
@@ -406,6 +440,84 @@ public class MainPanel extends JPanel {
 		comboBox.setEnabled(!isOpen);
 		comboBox_1.setEnabled(!isOpen);
 
+	}
+
+	/**
+	 * ファイル選択
+	 */
+	private JFileChooser chooser = new JFileChooser();
+
+	/**
+	 * CSV出力を実行します
+	 * @return
+	 */
+	public void outputFile() {
+
+		BasicFileChooserUI ui = (BasicFileChooserUI) chooser.getUI();
+
+		// 初期ファイル名作成
+		String name = "output";
+		ui.setFileName(name + ".txt");
+
+		int returnVal = chooser.showSaveDialog(getRootPane());
+
+		try {
+
+			if (returnVal == JFileChooser.APPROVE_OPTION) {
+				File file = chooser.getSelectedFile();
+				if (output(file.getAbsolutePath())) {
+					JOptionPane.showMessageDialog(
+							getRootPane(),
+							"ファイル出力が完了しました。");
+				} else {
+					JOptionPane.showMessageDialog(
+							getRootPane(),
+							"ファイル出力に失敗しました。", "CSV出力エラー", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+	}
+
+	/**
+	 * 出力処理
+	 * @return
+	 */
+	private boolean output(String pathname) {
+
+		BufferedWriter bw = null;
+
+		/**書き込み処理***/
+
+		try {
+
+			bw = new BufferedWriter(new FileWriter(new File(pathname)));
+			//			bw.write(",");
+			//			//改行
+			//			bw.newLine();
+			bw.write(tx.getText());
+
+			bw.flush();
+			bw.close();
+
+		} catch (IOException e) {
+
+			log.debug("", e);
+
+		} finally {
+			if (bw != null) {
+				try {
+					bw.close();
+				} catch (IOException e) {
+					log.debug("", e);
+				}
+			}
+		}
+
+		return true;
 	}
 
 }
